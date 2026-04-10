@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Assignment 1 - WebGL Paint</title>
+  <style>
+    body {
+      margin: 18px 14px;
+      background: #e9e9e9;
+      color: #111;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    h1 {
+      margin: 0 0 14px 0;
+      font-size: 32px;
+      font-weight: 800;
+    }
+
+    p.topnote {
+      margin: 0 0 18px 0;
+      font-size: 18px;
+      color: #444;
+    }
+
+    .layout {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .canvas-card {
+      background: #f3f3f3;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    canvas {
+      display: block;
+      background: #ffffff;
+      border: 2px solid #444;
+      border-radius: 14px;
+    }
+
+    .controls-card {
+      width: 430px;
+      background: #f3f3f3;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .section-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin: 0 0 12px 0;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+    }
+
+    button {
+      background: #1d2a44;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 12px 20px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #162136;
+    }
+
+    .control-row {
+      display: grid;
+      grid-template-columns: 150px 1fr 40px;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .control-row label {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    #colorPreview {
+      width: 34px;
+      height: 34px;
+      border: 2px solid #777;
+      border-radius: 6px;
+      background: white;
+    }
+
+    .note {
+      margin-top: 18px;
+      font-size: 17px;
+      line-height: 1.45;
+      color: #222;
+    }
+
+    .reference-card {
+      margin-top: 22px;
+      width: 250px;
+      background: #dfe3e7;
+      border: 2px solid #3a7bff;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .reference-card .title {
+      color: #2360ff;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .reference-card .subtitle {
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #222;
+    }
+
+    .reference-card img {
+      width: 100%;
+      display: block;
+      border: 1px solid #aaa;
+      margin-bottom: 10px;
+      background: white;
+    }
+
+    .reference-card .caption-title {
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #222;
+    }
+
+    .reference-card .caption {
+      font-size: 12px;
+      line-height: 1.35;
+      color: #555;
+    }
+  </style>
+</head>
+<body onload="main()">
+  <h1>Assignment 1 - WebGL Paint</h1>
+  <p class="topnote">
+    Click or drag on the canvas to paint. Use the controls to switch brush type, color, size, and circle detail.
+  </p>
+
+  <div class="layout">
+    <div class="canvas-card">
+      <canvas id="webgl" width="820" height="820">
+        Please use a browser that supports canvas.
+      </canvas>
+    </div>
+
+    <div class="controls-card">
+      <div class="section-title">Drawing Mode</div>
+      <div class="button-row">
+        <button id="squareButton">Squares</button>
+        <button id="triangleButton">Triangles</button>
+        <button id="circleButton">Circles</button>
+      </div>
+
+      <div class="section-title">Canvas Actions</div>
+      <div class="button-row">
+        <button id="clearButton">Clear Canvas</button>
+        <button id="pictureButton">Draw My Picture</button>
+      </div>
+
+      <div class="control-row">
+        <label for="redSlide">Red</label>
+        <input type="range" id="redSlide" min="0" max="100" value="20">
+        <div></div>
+      </div>
+
+      <div class="control-row">
+        <label for="greenSlide">Green</label>
+        <input type="range" id="greenSlide" min="0" max="100" value="80">
+        <div></div>
+      </div>
+
+      <div class="control-row">
+        <label for="blueSlide">Blue</label>
+        <input type="range" id="blueSlide" min="0" max="100" value="20">
+        <div id="colorPreview"></div>
+      </div>
+
+      <div class="control-row">
+        <label for="sizeSlide">Shape Size</label>
+        <input type="range" id="sizeSlide" min="5" max="40" value="12">
+        <div id="sizeValue">12</div>
+      </div>
+
+      <div class="control-row">
+        <label for="segmentSlide">Circle Segments</label>
+        <input type="range" id="segmentSlide" min="3" max="40" value="16">
+        <div id="segmentValue">16</div>
+      </div>
+
+      <div class="note">
+        <strong>Awesomeness feature:</strong> drag strokes fill gaps by combining repeated shape placement with line-based connectors during mouse movement, so squares, triangles, and circles each produce smoother continuous strokes.
+      </div>
+
+      <div class="note">
+        <strong>Reference sketch:</strong> this card shows the original hand-drawn sketch used for the WebGL recreation.
+      </div>
+
+      <div class="reference-card">
+        <div class="title">Reference Image (Original Drawing)</div>
+        <div class="subtitle">Original Hand-Drawn Sketch:</div>
+        <img src="tree_with_triangles.png" alt="Original hand-drawn tree sketch">
+        <div class="caption-title">WebGL Recreation (above):</div>
+        <div class="caption">
+          The canvas above shows the WebGL recreation of the original drawing using triangles and geometric shapes.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="Square.js"></script>
+  <script src="Triangle.js"></script>
+  <script src="Circle.js"></script>
+  <script src="ColoredPoints.js"></script>
+</body>
+</html>
