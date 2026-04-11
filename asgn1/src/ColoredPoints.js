@@ -15,9 +15,10 @@ const FSHADER_SOURCE = `
   }
 `;
 
-const SQUARE = 0;
-const TRIANGLE = 1;
-const CIRCLE = 2;
+const POINT = 0;
+const SQUARE = 1;
+const TRIANGLE = 2;
+const CIRCLE = 3;
 
 let canvas, gl;
 let a_Position, u_FragColor, u_Size;
@@ -37,8 +38,8 @@ function main() {
   connectVariablesToGLSL();
   setupUI();
 
-  canvas.onmousedown = (ev) => drawAtMouse(ev);
-  canvas.onmousemove = (ev) => { if (ev.buttons === 1) drawAtMouse(ev); };
+  canvas.onmousedown = (ev) => handleClicks(ev);
+  canvas.onmousemove = (ev) => { if (ev.buttons === 1) handleClicks(ev); };
   canvas.onmouseup = resetDrag;
   canvas.onmouseleave = resetDrag;
 
@@ -63,6 +64,7 @@ function connectVariablesToGLSL() {
 }
 
 function setupUI() {
+  document.getElementById('pointButton').onclick = () => selectedShape = POINT;
   document.getElementById('squareButton').onclick = () => selectedShape = SQUARE;
   document.getElementById('triangleButton').onclick = () => selectedShape = TRIANGLE;
   document.getElementById('circleButton').onclick = () => selectedShape = CIRCLE;
@@ -110,7 +112,7 @@ function resetDrag() {
   lastY = null;
 }
 
-function drawAtMouse(ev) {
+function handleClicks(ev) {
   const [x, y] = mouseToGL(ev);
 
   if (lastX !== null && lastY !== null && ev.buttons === 1) {
@@ -147,6 +149,7 @@ function fillStroke(x1, y1, x2, y2) {
 }
 
 function getSpacing() {
+  if (selectedShape === POINT) return Math.max(0.006, selectedSize / 800);
   if (selectedShape === SQUARE) return Math.max(0.008, selectedSize / 700);
   if (selectedShape === TRIANGLE) return Math.max(0.012, selectedSize / 520);
   return Math.max(0.010, selectedSize / 620);
@@ -154,7 +157,10 @@ function getSpacing() {
 
 function addBrushShape(x, y) {
   let shape;
-  if (selectedShape === SQUARE) {
+
+  if (selectedShape === POINT) {
+    shape = new Point();
+  } else if (selectedShape === SQUARE) {
     shape = new Square();
   } else if (selectedShape === TRIANGLE) {
     shape = new Triangle();
