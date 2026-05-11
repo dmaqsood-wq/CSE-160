@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Assignment 3 - Textured Voxel World</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #030610;
+      --panel: rgba(5, 9, 22, 0.94);
+      --panel-border: rgba(0, 238, 255, 0.36);
+      --ink: #edfaff;
+      --muted: #91abc2;
+      --amber: #ff2fd6;
+      --green: #7aff6b;
+      --blue: #00eaff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        repeating-linear-gradient(0deg, rgba(0, 234, 255, 0.035) 0, rgba(0, 234, 255, 0.035) 1px, transparent 1px, transparent 7px),
+        linear-gradient(135deg, rgba(255, 47, 214, 0.12), transparent 34%),
+        linear-gradient(180deg, rgba(4, 8, 24, 0.95), rgba(2, 5, 12, 1)),
+        var(--bg);
+      color: var(--ink);
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: minmax(640px, 1fr) 300px;
+      gap: 18px;
+      min-height: 100vh;
+      padding: 18px;
+    }
+
+    .stage {
+      position: relative;
+      min-height: calc(100vh - 36px);
+      border: 1px solid var(--panel-border);
+      background: #02050d;
+      box-shadow: 0 0 26px rgba(0, 234, 255, 0.16), inset 0 0 22px rgba(255, 47, 214, 0.09);
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      min-height: calc(100vh - 38px);
+      display: block;
+      background: #030610;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    .crosshair {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 18px;
+      height: 18px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+
+    .crosshair::before,
+    .crosshair::after {
+      content: "";
+      position: absolute;
+      background: rgba(0, 234, 255, 0.95);
+      box-shadow: 0 0 10px rgba(0, 234, 255, 0.8);
+    }
+
+    .crosshair::before {
+      left: 8px;
+      top: 0;
+      width: 2px;
+      height: 18px;
+    }
+
+    .crosshair::after {
+      left: 0;
+      top: 8px;
+      width: 18px;
+      height: 2px;
+    }
+
+    .hud {
+      align-self: stretch;
+      padding: 18px;
+      border: 1px solid var(--panel-border);
+      background: var(--panel);
+      box-shadow: 0 0 24px rgba(0, 234, 255, 0.14), inset 0 0 24px rgba(255, 47, 214, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      line-height: 1;
+      color: var(--blue);
+      text-shadow: 0 0 14px rgba(0, 234, 255, 0.72), 0 0 28px rgba(255, 47, 214, 0.32);
+    }
+
+    .status {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      min-height: 92px;
+    }
+
+    .lore-panel {
+      border: 1px solid rgba(0, 234, 255, 0.18);
+      background: rgba(2, 5, 13, 0.56);
+      box-shadow: inset 0 0 14px rgba(0, 234, 255, 0.05);
+      padding: 12px;
+    }
+
+    .lore-panel p {
+      margin: 8px 0 0;
+      color: #c5ecff;
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      border: 1px solid rgba(0, 234, 255, 0.2);
+      background: rgba(2, 5, 13, 0.74);
+      box-shadow: inset 0 0 12px rgba(0, 234, 255, 0.05);
+      padding: 12px;
+    }
+
+    .stat-wide {
+      grid-column: 1 / -1;
+    }
+
+    .label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .value {
+      display: block;
+      margin-top: 8px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .meter {
+      height: 10px;
+      background: rgba(0, 234, 255, 0.08);
+      border: 1px solid rgba(0, 234, 255, 0.16);
+      overflow: hidden;
+    }
+
+    .meter-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), #ff2fd6, var(--green));
+      transition: width 160ms ease;
+    }
+
+    .log {
+      min-height: 46px;
+      color: var(--blue);
+      text-shadow: 0 0 9px rgba(0, 234, 255, 0.42);
+      line-height: 1.35;
+    }
+
+    .command-panel {
+      border: 1px solid rgba(255, 47, 214, 0.24);
+      background: rgba(2, 5, 13, 0.68);
+      box-shadow: inset 0 0 16px rgba(255, 47, 214, 0.05);
+      padding: 12px;
+    }
+
+    .command-title {
+      margin-bottom: 10px;
+    }
+
+    .command-row {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+      align-items: start;
+      padding: 4px 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .keys {
+      color: var(--blue);
+      font-weight: 800;
+      text-shadow: 0 0 8px rgba(0, 234, 255, 0.42);
+    }
+
+    @media (max-width: 920px) {
+      .page {
+        grid-template-columns: 1fr;
+      }
+
+      .stage,
+      canvas {
+        min-height: 68vh;
+      }
+    }
+  </style>
+</head>
+<body onload="main()">
+  <main class="page">
+    <section class="stage">
+      <canvas id="webgl" width="960" height="640" tabindex="0">
+        Please use a browser that supports canvas.
+      </canvas>
+      <div class="crosshair" aria-hidden="true"></div>
+    </section>
+
+    <aside class="hud">
+      <h1>Neon Rift</h1>
+      <p class="status" id="storyStatus">You are a netrunner contracted to recover eight shard cores implanted in this grid network by a rogue netrunner with malicious intentions.</p>
+
+      <div class="meter" aria-hidden="true">
+        <div class="meter-fill" id="shardMeter"></div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat">
+          <span class="label">Shards</span>
+          <span class="value" id="shardValue">0/0</span>
+        </div>
+        <div class="stat">
+          <span class="label">FPS</span>
+          <span class="value" id="fpsValue">0.0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Blocks</span>
+          <span class="value" id="blockValue">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Position</span>
+          <span class="value" id="positionValue">0, 0</span>
+        </div>
+        <div class="stat stat-wide">
+          <span class="label">Antigravity Boots</span>
+          <span class="value" id="bootsValue">OFF</span>
+        </div>
+      </div>
+
+      <div class="lore-panel" aria-label="Story brief">
+        <span class="label">Signal Brief</span>
+        <p id="loreText">The shard cores are rogue implants hidden in the grid. Each one can siphon power or open a backdoor if left active.</p>
+      </div>
+
+      <div class="command-panel" aria-label="Controls">
+        <span class="label command-title">Controls</span>
+        <div class="command-row">
+          <span class="keys">W/A/S/D</span>
+          <span>Move forward, left, back, right</span>
+        </div>
+        <div class="command-row">
+          <span class="keys">Q/E Mouse</span>
+          <span>Turn or drag to look around</span>
+        </div>
+        <div class="command-row">
+          <span class="keys">F/R 1/2/3</span>
+          <span>Build, remove, select block</span>
+        </div>
+        <div class="command-row">
+          <span class="keys">B Space/C</span>
+          <span>Antigravity boots, freefall/up/down</span>
+        </div>
+      </div>
+
+      <div class="log" id="actionLog">World is building...</div>
+    </aside>
+  </main>
+
+  <script src="../lib/cuon-matrix-cse160.js"></script>
+  <script src="./camera.js"></script>
+  <script src="./asg3.js"></script>
+</body>
+</html>
